@@ -1,7 +1,8 @@
 const Course = require('../models/Course.model');
 const { createTerm } = require('../controllers/term.controller');
-const User = require('../models/User.model')
-const IndexToUpdate = require('../models/IndexToUpdate.model')
+const User = require('../models/User.model');
+const IndexToUpdate = require('../models/IndexToUpdate.model');
+const Term = require('../models/Term.model');
 
 const createCourse = async (req, res) => {
     try {
@@ -47,6 +48,25 @@ const updateIndex = async (req, res) => {
 const showNewCourse = async (req,res) => {
     try {
         const courseList = await Course.aggregate([
+            {
+                $lookup:
+                {
+                    from: 'courses', localField: 'course', foreignField: '_id', as: 'course'
+                    , "pipeline": [
+                        {
+                            $match: { $or: [{ access: 'public' }, { user: req.user._id }] }
+                        },
+                        {
+                            $project: {
+                                _id: true,
+                                nameCourse: true,
+                                updateIndex: true,
+                                totalTerm: true,
+                                user: true
+                            }
+                        }]
+                }
+            },
             { $lookup: 
                 { from: 'users', localField: 'user', foreignField: '_id', as: 'users' 
                 , "pipeline": [{
@@ -117,6 +137,70 @@ const showRecentCourse = async (req, res) => {
     }
 }
 
+const deteleCourse = async (req, res) =>{
+    try {
+        const check = await Course.deleteOne({user: req.user._id, _id: req.body.delete});
+        console.log(check);
+        if (check.deletedCount !== 0){
+            await Term.deleteMany({ course: req.body.delete});
+        }
+        else{
+            throw new Error('course does not exist');
+        }
+        res.status(200).send({message: 'success'});
+    } catch (error) {
+        throw new Error(error);
+    }
+}
 
 
-module.exports = { createCourse, updateIndex, showNewCourse, showRecentCourse }
+const showTerms = async (req,res) => {
+    try {
+        const list = await Course.aggregate([
+            {$match: {user: req.user._id}},
+            {
+                $lookup:{
+                    from: 'terms', localField: '_id', foreignField: 'course', as: 'terms'
+                }
+            }
+        ])
+        res.status(200).send(list);
+    } catch (error) {
+        throw new Error(error);
+    }
+    
+}
+
+const cloneCourse = async (req,res) => {
+    try {
+        const cloneCourse = await Course.findById(req.body.id).lean();
+        console.log(cloneCourse);
+        const newCourse = new Course ({
+            user: req.user._id,
+            nameCourse: cloneCourse.nameCourse + " clone",
+            updateIndex: new Date().getTime(),
+            access: cloneCourse.access,
+            totalTerm: cloneCourse.totalTerm
+        });
+        const successCourse = await newCourse.save();
+        const listTerm = await Term.find({course: cloneCourse._id}).lean();
+        const listPromise = [];
+        listTerm.forEach((term) => {
+                const newTerm = new Term({
+                    course: successCourse._id,
+                    nameTerm: term.nameTerm,
+                    mean: term.mean
+                })
+                listPromise.push(newTerm.save());
+            }
+        )
+
+        await Promise.all(listPromise);
+        res.status(200).send({ message: "success" });
+    } catch (error) {
+        throw new Error(error);
+    }
+}
+
+
+module.exports = { createCourse, updateIndex, showNewCourse, showRecentCourse, deteleCourse, showTerms, cloneCourse }
