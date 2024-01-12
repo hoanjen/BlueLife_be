@@ -1,5 +1,6 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+const { paginate } = require('./plugins')
 
 const Course = new Schema({
     user: {type: mongoose.Schema.Types.ObjectId, ref:'User', require: true},
@@ -9,5 +10,7 @@ const Course = new Schema({
 }, {
     timestamps: true
 })
+
+Course.plugin(paginate);
 
 module.exports = mongoose.model('Course', Course)

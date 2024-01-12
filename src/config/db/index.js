@@ -6,7 +6,7 @@ async function connect() {
         {
             useCreateIndex: true
         }
-        console.log("Success")
+        console.log("Config mongodb success")
     } catch (error) {
         console.log(error)
     }

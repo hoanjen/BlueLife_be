@@ -18,7 +18,7 @@ const createCourse = async (req, res) => {
         
         await course.save();
         await createTerm(course._id, req.body.terms.nameTerm, req.body.terms.mean);
-
+        
         res.status(201).send({message: "success"});
     } catch (error) {
         throw new Error(error);
