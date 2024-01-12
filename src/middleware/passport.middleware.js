@@ -1,10 +1,12 @@
-const passport = require('passport')
-const bcrypt = require('bcryptjs')
-const localStrategy = require('passport-local').Strategy
-const JwtStrategy = require('passport-jwt').Strategy
-const { ExtractJwt } = require('passport-jwt')
-const User = require('../models/User.model')
+const passport = require('passport');
+const bcrypt = require('bcryptjs');
+const localStrategy = require('passport-local').Strategy;
+const JwtStrategy = require('passport-jwt').Strategy;
+const { ExtractJwt } = require('passport-jwt');
+const User = require('../models/User.model');
 require('dotenv').config();
+const ApiError = require('../utils/ApiError');
+const httpStatus = require('http-status');
 
 passport.use(new JwtStrategy(
     {
@@ -13,11 +15,11 @@ passport.use(new JwtStrategy(
     },
     async (payload, done) => {
         try {
-            if (payload.expiry <= payload.date){
-                throw new Error('Tokens expire')
+            if (payload.expiry <= new Date().getTime()){
+                throw new ApiError(httpStatus.UNAUTHORIZED,'Tokens expire');
             }
             const user = await User.findById(payload.id).lean();
-            if (!user) throw new Error('Unauthorized')
+            if (!user) throw new Error(httpStatus.FORBIDDEN, 'FORBIDDEN');
             done(null, user);
         }
         catch (error) {

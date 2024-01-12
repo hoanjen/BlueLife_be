@@ -9,7 +9,7 @@ const tokenService = require('../services/token.service');
 const createUser = async (req) => {
     const check = await User.findOne({ email: req.body.email }).lean();
     if (check !== null) {
-        throw new ApiError(httpStatus[400],'email already exists on the system');
+        throw new ApiError(400,'email already exists on the system');
     }
     const salt = await bcrypt.genSalt(8);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
@@ -27,9 +27,9 @@ const createUser = async (req) => {
     return newUser;
 }
 
-const createPairSecret = async (req) => {
-    const accessToken = tokenService.createAccessToken(req.user._id, req.user.isAdmin);
-    const refreshToken = tokenService.createRefreshToken(req.user._id, req.user.isAdmin);
+const createPairSecret = async (userId, isAdmin) => {
+    const accessToken = tokenService.createAccessToken(userId, isAdmin);
+    const refreshToken = tokenService.createRefreshToken(userId, isAdmin);
     const newSecret = {
         user: req.user._id,
         accessToken,
@@ -38,23 +38,25 @@ const createPairSecret = async (req) => {
     return newSecret;
 }
 
-const getNewPassword = async (req) => {
-    const check = await bcrypt.compare(req.body.password, req.user.password)
+const getNewPassword = async (passwordReq, password, newPassword) => {
+    const check = await bcrypt.compare(passwordReq, password)
     if (!check) throw new ApiError(400,'Current password is incorrect.');
     const salt = await bcrypt.genSalt(8);
-    const hashedPassword = await bcrypt.hash(req.body.newPassword, salt);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
     return hashedPassword;
 }
 
-const getAccessToken = async (req) => {
-    const data = await jwt.verify(req.body.refreshToken,process.env.secret);
-    console.log(data);
-    const pairSecret = await PairSecret.findOne({refreshToken: req.body.refreshToken});
-    if(pairSecret === null){
-        throw new ApiError(400,'Password has changed, please log in again');
+const getAccessToken = async (refreshToken, userId) => {
+    const data = await jwt.verify(refreshToken,process.env.secret);
+    if(data.expiry <= new Date().getTime()){
+        throw new ApiError(401, 'Please log in again');
     }
-    const accessToken = tokenService.createAccessToken(req.user._id, false);
-
+    const pairSecret = await PairSecret.findOne({refreshToken});
+    if(pairSecret === null){
+        throw new ApiError(401,'Password has changed, please log in again');
+    }
+    const accessToken = tokenService.createAccessToken(userId, false);
+    await pairSecret.updateOne({ accessToken });
     return accessToken;
 }
 

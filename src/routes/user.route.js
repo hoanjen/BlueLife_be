@@ -8,9 +8,8 @@ const { userValidation } = require('../validations')
 const validate = require('../middleware/validate.middleware')
 
 router.post('/signup', validate(userValidation.createUser) ,signup)
-router.post('/signin', passport.authenticate('local', { session: false }), signin)
-router.put('/changePassword', passport.authenticate('jwt', { session: false }), changePassword)
-router.get('/getAccessToken', passport.authenticate('jwt', { session: false }), getAccessToken)
-router.post('/test', validate(userValidation.createUser), test)
+router.post('/signin', validate(userValidation.signin) ,passport.authenticate('local', { session: false }), signin)
+router.put('/changePassword', validate(userValidation.changePassword), passport.authenticate('jwt', { session: false }), changePassword)
+router.put('/getAccessToken', validate(userValidation.getAccessToken)  ,getAccessToken)
 
 module.exports = router
