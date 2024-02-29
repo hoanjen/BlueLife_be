@@ -14,16 +14,17 @@ passport.use(new JwtStrategy(
         secretOrKey: process.env.secret
     },
     async (payload, done) => {
+        
         try {
             if (payload.expiry <= new Date().getTime()){
                 throw new ApiError(httpStatus.UNAUTHORIZED,'Tokens expire');
             }
             const user = await User.findById(payload.id).lean();
-            if (!user) throw new Error(httpStatus.FORBIDDEN, 'FORBIDDEN');
+            if (!user) throw new ApiError(httpStatus.FORBIDDEN, 'FORBIDDEN');
             done(null, user);
         }
         catch (error) {
-            done(error, false);
+            done(new ApiError(httpStatus.UNAUTHORIZED, 'UNAUTHORIZED'), false);
         }
 }))
 

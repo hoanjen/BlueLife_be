@@ -24,25 +24,32 @@ const createUser = async (req) => {
         usename: req.body.username,
         isAdmin
     };
-    return newUser;
+    const user = new User(newUser);
+    await user.save();
+    return user;
 }
 
 const createPairSecret = async (userId, isAdmin) => {
     const accessToken = tokenService.createAccessToken(userId, isAdmin);
     const refreshToken = tokenService.createRefreshToken(userId, isAdmin);
     const newSecret = {
-        user: req.user._id,
+        user: userId,
         accessToken,
         refreshToken
     }
-    return newSecret;
+    const pair = new PairSecret(newSecret);
+    await pair.save();
+    return pair;
 }
 
-const getNewPassword = async (passwordReq, password, newPassword) => {
+const getNewPassword = async (userId ,passwordReq, password, newPassword) => {
+
     const check = await bcrypt.compare(passwordReq, password)
     if (!check) throw new ApiError(400,'Current password is incorrect.');
     const salt = await bcrypt.genSalt(8);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
+    await User.findOneAndUpdate({ _id: userId }, { password: hashedPassword });
+    await PairSecret.deleteMany({ user: userId });
     return hashedPassword;
 }
 

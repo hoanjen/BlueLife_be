@@ -12,7 +12,6 @@ const validate = (schema) => (req, res, next) => {
     .validate(object);
   if (error) {
     const errorMessage = error.details.map((details) => details.message).join(', ');
-    console.log(errorMessage)
     return res.status(httpStatus.BAD_REQUEST).json(response(httpStatus.BAD_REQUEST, errorMessage));
   }
   Object.assign(req, value);

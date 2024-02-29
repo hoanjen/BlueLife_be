@@ -2,16 +2,19 @@ const express = require('express')
 const router = express.Router()
 require('express-async-errors')
 require('../middleware/passport.middleware')
-const passport = require('passport')
-const { createCourse, updateIndex, showNewCourse, showRecentCourse, deteleCourse, showTerms, cloneCourse } = require('../controllers/course.controller')
+const { createCourse, updateIndex, showNewCourse, showRecentCourse, deteleCourse, showTerms, cloneCourse, getCourseByAdmin } = require('../controllers/course.controller')
+const { courseValidation } = require('../validations');
+const validate = require('../middleware/validate.middleware')
+const { auth, authorize } = require('../middleware/auth.middleware')
 
-router.post('/createCourse', passport.authenticate('jwt', { session: false }), createCourse);
-router.put('/updateIndex', passport.authenticate('jwt', { session: false }), updateIndex);
-router.get('/showRecentCourse', passport.authenticate('jwt', { session: false }), showRecentCourse);
-router.delete('/deteleCourse', passport.authenticate('jwt', { session: false }), deteleCourse);
-router.get('/showTerms', passport.authenticate('jwt', { session: false }), showTerms);
-router.post('/cloneCourse', passport.authenticate('jwt', { session: false }), cloneCourse);
-router.get('/showNewCourse', showNewCourse);
+router.post('/createCourse', validate(courseValidation.createCourse), auth, createCourse);
+router.put('/updateIndex', validate(courseValidation.updateIndex), auth, updateIndex);
+router.get('/showRecentCourse', auth, showRecentCourse);
+router.delete('/deteleCourse', validate(courseValidation.deleteCourse), auth, deteleCourse);
+router.get('/showTerms', auth, showTerms);
+router.post('/cloneCourse',validate(courseValidation.cloneCourse), auth, cloneCourse);
+router.get('/showNewCourse', validate(courseValidation.showMyCourse), auth,  showNewCourse);
+router.get('/getCourse', auth, getCourseByAdmin);
 
 
-module.exports = router
+module.exports = router;
